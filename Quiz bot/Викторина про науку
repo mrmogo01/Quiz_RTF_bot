@@ -1,0 +1,320 @@
+import asyncio
+import logging
+from aiogram import Bot, Dispatcher, types
+from aiogram.contrib.middlewares.logging import LoggingMiddleware
+from aiogram.contrib.fsm_storage.memory import MemoryStorage
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+from aiogram.dispatcher import FSMContext
+from aiogram.dispatcher.filters.state import State, StatesGroup
+from aiogram.utils import executor
+from datetime import datetime
+import openpyxl
+
+API_TOKEN = '6883005581:AAHLFdi0xYLMRPLnTcDs3NQuIRk47yGzD4A'
+
+logging.basicConfig(level=logging.INFO)
+
+bot = Bot(token=API_TOKEN)
+storage = MemoryStorage()
+dp = Dispatcher(bot, storage=storage)
+dp.middleware.setup(LoggingMiddleware())
+
+questions = [
+    {
+        "question": "Какой лаборатори нет в ИРИТ-РТФ?\n\n❗Выбери вариант ответа👇",
+        "options": ["Лаборатория работотехники", "Эховая камера", "Центр космического мониторинга", "Лаборатория VR/AR"],
+        "scores": [0, 10, 0, 0],
+        "correct_index": 1
+    },
+    {
+        "question": "Размер какой стипендии 300 т.р.?\n\n❗Выбери вариант ответа👇",
+        "options": ["Корпоративная стипендия АО «Росэнергоатом»", "Стипендия ""Альфа-шанс""", "Стипендия Правительства Российской Федерации", "Стипендиальная программа En+ group/ РУСАЛ"],
+        "scores": [0, 10, 0, 0],
+        "correct_index": 1
+    },
+    {
+        "question": "Какой конкурс грантов есть в УрФУ?\n\n❗Выбери вариант ответа👇",
+        "options": ["Гений", "IT-прорыв", "Стартапер", "Умник"],
+        "scores": [0, 0, 0, 10],
+        "correct_index": 3
+    },
+    {
+        "question": "Какая конференция не проходит в ИРИТ-РТФ?\n\n❗Выбери вариант ответа👇",
+        "options": ["USBEREIT", "ИНТЕР", "RadioIT", "InnoCSE"],
+        "scores": [0, 10, 0, 0],
+        "correct_index": 1
+    },
+    {
+        "question": "Сколько всего лабораторий в ИРИТ-РТФ?\n\n❗Выбери вариант ответа👇",
+        "options": ["10", "12", "14", "16"],
+        "scores": [0, 0, 10, 0],
+        "correct_index": 2
+    },
+    {
+        "question": "Как назвается структура научной статьи оригинального исследовательского типа?\n\n❗Выбери вариант ответа👇",
+        "options": ["IPLAR", "POSTAR", "PIND", "IMRAD"],
+        "scores": [0, 0, 0, 10],
+        "correct_index": 3
+    },
+    {
+        "question": "В каком из перечисленных ресурсов не получится найти научную информацию?\n\n❗Выбери вариант ответа👇",
+        "options": ["Dissert Catt", "eLIBRARY.RU", "Google Scholar", "Яндекс"],
+        "scores": [10, 0, 0, 0],
+        "correct_index": 0
+    },
+    {
+        "question": "Что появилось раньше WI-FI, Bluetooth, Blu-ray диск, mp3 плеер?\n\n❗Выбери вариант ответа👇",
+        "options": ["WI-FI", "Bluetooth", "Blu-ray диск", "mp3 плеер"],
+        "scores": [0, 0, 0, 10],
+        "correct_index": 3
+    },
+    {
+        "question": "Кто считается ""отцом"" компьютерных наук и придумал понятие универсальной машины?\n\n❗Выбери вариант ответа👇",
+        "options": ["Чарльз Бэббидж", "Стив Джобс", "Конрад Цузе", "Алан Тьюринг"],
+        "scores": [0, 0, 0, 10],
+        "correct_index": 3
+    },
+    {
+        "question": "Мы дадим вам набор слов-ассоциаций, а ваша задача — угадать профессию в мире информационных технологий!\nДанные, графики, прогноз, Excel?\n\n❗Выбери вариант ответа👇",
+        "options": ["Сетевой инженер", "Специалиста по кибербезопасности", "Системный администратор", "Аналитик"],
+        "scores": [0, 0, 0, 10],
+        "correct_index": 3
+    },
+    {
+        "question": "Что выведет данный код?\n\n❗Выбери вариант ответа👇",
+        "photo": "code.jpg",
+        "options": ["Арифметическая прогрессия", "Геометрическая прогрессия", "Числа Фибоначчи", "Числа от 1 до 100"],
+        "scores": [0, 0, 10, 0],
+        "correct_index": 2
+    },
+    {
+        "question": "Какое животное является официальным талисманом операционной системы Linux?\n\n❗Выбери вариант ответа👇",
+        "options": ["Кролик", "Собака", "Пингвин"],
+        "scores": [0, 0, 10],
+        "correct_index": 2
+    },
+    {
+        "question": "Какая мобильная компания первой внедрила эмодзи на своих мобильных устройствах?\n\n❗Выбери вариант ответа👇",
+        "options": ["Только чтение", "Только запись", "Запись и чтение"],
+        "scores": [0, 0, 10],
+        "correct_index": 2
+    },
+    {
+        "question": "Какой тип сети позволяет сотрудникам организации или компании общаться друг с другом?\n\n❗Выбери вариант ответа👇",
+        "options": ["Интернет", "Интранет", "Экстранет"],
+        "scores": [10, 0, 0],
+        "correct_index": 0
+    },
+    {
+        "question": "Что означает буква B в слове “USB”?\n\n❗Выбери вариант ответа👇",
+        "options": ["Basis", "Bus", "Break"],
+        "scores": [0, 10, 0],
+        "correct_index": 2
+    }
+]
+
+user_data = {}
+message_id = {}
+user_status = {}
+
+
+class Form(StatesGroup):
+    name = State()
+    vk = State()
+    status = State()
+    group = State()
+    secret = State()
+    check_secret = State()
+
+
+async def create_excel_file():
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.append(["ID", "ФИО", "ВК", "Статус", "Группа", "Количество баллов"])
+    wb.save("participants.xlsx")
+
+
+# Проверяем наличие файла, если его нет - создаем новый с заголовками
+try:
+    wb = openpyxl.load_workbook("participants.xlsx")
+except FileNotFoundError:
+    create_excel_file()
+
+@dp.message_handler(commands=['start'])
+async def send_welcome(message: types.Message):
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    start_button = types.KeyboardButton("Начать")
+    markup.add(start_button)
+
+    if not is_user_registered(message.from_user.id):
+        await bot.send_message(message.from_user.id, "Привет, участники викторины 👋\n\n"
+                                                     "Месяц науки подошел к концу, но активности не заканчиваются! Мы запускаем викторину, в которой ты сможешь проверить себя и свои знания, ответив на несложные вопросы об IT и науке в ИРИТ-РТФ!\n\n"
+                                                     "❗ Пройти викторину можно сегодня до 17:00, на каждый вопрос только 1 минута.\n\n"
+                                                     "Итоги подведем сегодня вечером в канале «Наука ИРИТ-РТФ», переходи по ссылке https://t.me/+cbGYhdidqKJlYWRi\n\n"
+                                                     "Удачи вам в прохождении квиза и пусть победит самый умный и знающий ☘",
+                               parse_mode='HTML',
+                               reply_markup=markup
+                               )
+    else:
+        await bot.send_message(message.from_user.id, "Вы уже зарегистрированы для участия в викторине.")
+
+
+@dp.message_handler()
+async def echo_all(message: types.Message):
+    if message.text == "Начать":
+        current_time = datetime.now()
+        quiz_start_time = datetime(current_time.year, 3, 3, 12, 0)  # 21 февраля, 13:00
+        quiz_end_time = datetime(current_time.year, 3, 3, 17, 0)  # 21 февраля, 15:00
+
+        if quiz_start_time <= current_time <= quiz_end_time:
+            if not is_user_registered(message.from_user.id):
+                await bot.send_message(message.from_user.id, "Отправьте свое ФИО")
+                user_data[message.from_user.id] = {"ID": message.from_user.id, "ФИО": message.from_user.full_name,
+                                                   "Количество баллов": 0}
+                user_status[message.from_user.id] = {}
+                await Form.name.set()
+            else:
+                await bot.send_message(message.from_user.id, "Пройти викторину можно пройти только один раз")
+        else:
+            await bot.send_message(message.from_user.id, "Дождитесь начала викторины")
+
+
+def is_user_registered(user_id):
+    wb = openpyxl.load_workbook("participants.xlsx")
+    ws = wb.active
+    for row in ws.iter_rows(min_row=2, max_row=ws.max_row, min_col=1, max_col=1):
+        if row[0].value == user_id:
+            return True
+    return False
+
+
+@dp.message_handler(state=Form.name)
+async def process_name_step(message):
+    user_data[message.from_user.id]["ФИО"] = message.text
+    await message.answer("Введите ссылку на свой ВК")
+    await Form.next()
+
+
+@dp.message_handler(state=Form.vk)
+async def process_vk_step(message):
+    user_data[message.from_user.id]["ВК"] = message.text
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    status_button_1 = types.KeyboardButton("Школьник")
+    status_button_2 = types.KeyboardButton("Студент")
+    markup.add(status_button_1, status_button_2)
+    await bot.send_message(message.chat.id, "Выберите свой статус:", reply_markup=markup)
+    await Form.next()
+
+
+@dp.message_handler(state=Form.status)
+async def process_status_step(message):
+    user_data[message.from_user.id]["Статус"] = message.text
+    if message.text == "Студент":
+        await message.answer("Введите вашу академическую группу\n\nНапример РИ-100000")
+        await Form.next()
+    else:
+        await bot.send_message(message.chat.id, "Напишите слово РТФ")
+        await Form.secret.set()
+
+
+@dp.message_handler(state=Form.group)
+async def process_group_step(message):
+    user_data[message.from_user.id]["Группа"] = message.text
+    await save_to_excel(user_data[message.from_user.id])
+    await bot.send_message(message.chat.id, "Напишите слово - РТФ")
+    await Form.secret.set()
+
+
+@dp.message_handler(state=Form.secret)
+async def process_secret_step(message, state):
+    secret_word = "РТФ"
+    if secret_word == message.text.strip():  # Замените "ваше_кодовое_слово" на фактическое кодовое слово
+        await message.answer("Кодовое слово принято. Начинаем викторину!")
+        await state.finish()  # Завершаем состояние 'secret'
+        await start_quiz(message.from_user.id)  # Переходим к состоянию, где начинается викторина
+    else:
+        await message.answer("Неправильное кодовое слово. Попробуйте снова.")
+
+async def start_quiz(user_id):
+    user_status[user_id]["current_question_index"] = 0
+    await send_question(user_id, questions[0])
+question_messages = {}
+async def send_question(chat_id, question_data):
+    question_text = question_data.get("question")
+    options = question_data.get("options")
+    photo_path = question_data.get("photo")
+    audio_path = question_data.get("audio")
+
+    # Send the question text
+    question_message = await bot.send_message(chat_id, question_text)
+    message_ids = [question_message.message_id]
+
+    # Send the photo if available
+    if photo_path:
+        photo_message = await bot.send_photo(chat_id, photo=open(photo_path, 'rb'))
+        message_ids.append(photo_message.message_id)
+
+    # Send the audio if available
+    if audio_path:
+        audio_message = await bot.send_audio(chat_id, audio=open(audio_path, 'rb'))
+        message_ids.append(audio_message.message_id)
+
+    # Send options if available
+    if options:
+        options_markup = InlineKeyboardMarkup()
+        for i, option in enumerate(options):
+            callback_data = f"answer_{i}"
+            options_markup.add(InlineKeyboardButton(option, callback_data=callback_data))
+        options_message = await bot.send_message(chat_id, "Выберите вариант ответа:", reply_markup=options_markup)
+        message_ids.append(options_message.message_id)
+
+    question_messages[chat_id] = message_ids
+
+
+@dp.callback_query_handler(lambda query: query.data.startswith('answer'))
+async def process_answer(callback_query: types.CallbackQuery, state: FSMContext):
+    user_id = callback_query.from_user.id
+    selected_option_index = int(callback_query.data.split('_')[1])
+    current_question_index = user_status[user_id].get("current_question_index", 0)
+    question_data = questions[current_question_index]
+
+    if selected_option_index == question_data["correct_index"]:
+        user_data[user_id]["Количество баллов"] += question_data["scores"][selected_option_index]
+
+        # Update the sum of points in the Excel file
+        await save_to_excel(user_data[user_id])
+
+    # Delete previous question and options messages
+    if user_id in question_messages:
+        for message_id in question_messages[user_id]:
+            await bot.delete_message(user_id, message_id)
+        del question_messages[user_id]
+
+    # Move to the next question or finish the quiz if all questions are answered
+    if current_question_index + 1 < len(questions):
+        user_status[user_id]["current_question_index"] = current_question_index + 1
+        await send_question(user_id, questions[current_question_index + 1])
+    else:
+        await bot.send_message(user_id, "Вы ответили на все вопросы. Ваш результат сохранен. Спасибо за участие!")
+
+
+async def update_excel_points(user_id, new_points):
+    wb = openpyxl.load_workbook("participants.xlsx")
+    ws = wb.active
+    for row in ws.iter_rows(min_row=2, max_row=ws.max_row, min_col=1, max_col=1):
+        if row[0].value == user_id:
+            ws.cell(row=row[0].row, column=6, value=new_points)
+            break
+    wb.save("participants.xlsx")
+
+async def save_to_excel(user_data):
+    wb = openpyxl.load_workbook("participants.xlsx")
+    ws = wb.active
+    new_row = [user_data.get("ID", ""), user_data.get("ФИО", ""), user_data.get("ВК", ""),
+               user_data.get("Статус", ""), user_data.get("Группа", ""), user_data.get("Количество баллов", "")]
+    ws.append(new_row)
+    wb.save("participants.xlsx")
+
+
+if __name__ == '__main__':
+    executor.start_polling(dp, skip_updates=True)
