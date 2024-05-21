@@ -1,0 +1,426 @@
+import asyncio
+import logging
+from aiogram import Bot, Dispatcher, types
+from aiogram.contrib.middlewares.logging import LoggingMiddleware
+from aiogram.contrib.fsm_storage.memory import MemoryStorage
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+from aiogram.dispatcher import FSMContext
+from aiogram.dispatcher.filters.state import State, StatesGroup
+from aiogram.utils import executor
+from datetime import datetime
+import openpyxl
+import random
+
+API_TOKEN = '7009883545:AAHsjbopD1yStF_JL92KkVLiH6NyO3wKnGo'
+
+logging.basicConfig(level=logging.INFO)
+
+bot = Bot(token=API_TOKEN)
+storage = MemoryStorage()
+dp = Dispatcher(bot, storage=storage)
+dp.middleware.setup(LoggingMiddleware())
+
+questions = [
+    {
+        "options": ["Екатеринбург", "Новосибирск", "Омск", "Согласен"],
+        "scores": [0, 0, 1, 0],
+        "correct_index": 2,
+        "question": "https://telesco.pe/knqwae/23"
+    },
+    {
+        "options": ["Ева", "Валли", "Робокотя", "Биби"],
+        "scores": [0, 1, 0, 0],
+        "correct_index": 1,
+        "question": "https://telesco.pe/knqwae/40"
+    },
+    {
+        "options": ["Машину времени", "Межгалактический портал", "Микроволновку", "Шкаф"],
+        "scores": [1, 0, 0, 0],
+        "correct_index": 0,
+        "question": "https://telesco.pe/knqwae/33"
+    },
+    {
+        "options": ["Киберсталкер", "Кремниевая долина", "Разрабы", "В поле зрения"],
+        "scores": [0, 1, 0, 0],
+        "correct_index": 1,
+        "question": "https://telesco.pe/knqwae/19"
+    },
+    {
+        "options": ["ENDER", "OASIS", "AVIATO", "ERAGON"],
+        "scores": [0, 1, 0, 0],
+        "correct_index": 1,
+        "question": "https://telesco.pe/knqwae/10"
+    },
+    {
+        "options": ["Радио-волна", "Поп-волна", "Рэп-волна", "Рок-волна"],
+        "scores": [0, 0, 0, 1],
+        "correct_index": 3,
+        "question": "https://telesco.pe/knqwae/36"
+    },
+    {
+        "options": ["Turbo", "Donald Duck", "Clash", "Trident"],
+        "scores": [0, 0, 1, 0],
+        "correct_index": 2,
+        "question": "https://telesco.pe/knqwae/6"
+    },
+    {
+        "options": ["Капуцин", "Долгопят ", "Енот", "Лемур"],
+        "scores": [0, 0, 0, 1],
+        "correct_index": 3,
+        "question": "https://telesco.pe/knqwae/37"
+    },
+    {
+        "options": ["Москва ", "Екатеринбург", "Чита", "Санкт-Петербург"],
+        "scores": [1, 0, 0, 0],
+        "correct_index": 0,
+        "question": "https://telesco.pe/knqwae/5"
+    },
+    {
+        "options": ["Вайбер", "ICQ", "ask.fm", "Одноклассники"],
+        "scores": [0, 1, 0, 0],
+        "correct_index": 1,
+        "question": "https://telesco.pe/knqwae/27"
+    },
+    {
+        "options": ["2012", "2014", "2016", "2013"],
+        "scores": [0, 1, 0, 0],
+        "correct_index": 1,
+        "question": "https://telesco.pe/knqwae/21"
+    },
+    {
+        "options": ["Волк с Уолл-стрит ", "Кровавый алмаз", "Титаник", "Авиатор"],
+        "scores": [0, 0, 1, 0],
+        "correct_index": 2,
+        "question": "https://telesco.pe/knqwae/34"
+    },
+    {
+        "options": ["2014", "2012", "2013", "2008"],
+        "scores": [0, 1, 0, 0],
+        "correct_index": 1,
+        "question": "https://telesco.pe/knqwae/17"
+    },
+    {
+        "options": ["Unified Resourse Language", "User Registration List", "Uniform Resourse Locator", "Universal Remote Locator"],
+        "scores": [0, 0, 1, 0],
+        "correct_index": 2,
+        "question": "https://telesco.pe/knqwae/15"
+    },
+    {
+        "options": ["Sony", "Google", "Xiaomi", "LG"],
+        "scores": [0, 1, 0, 0],
+        "correct_index": 1,
+        "question": "https://telesco.pe/knqwae/14"
+    },
+    {
+        "options": ["Sony", "Microsoft", "Nintendo", "Sega"],
+        "scores": [0, 1, 0, 0],
+        "correct_index": 1,
+        "question": "https://telesco.pe/knqwae/18"
+    },
+    {
+        "options": ["Microsoft", "IBM", "Dell", "Apple"],
+        "scores": [0, 1, 0, 0],
+        "correct_index": 1,
+        "question": "https://telesco.pe/knqwae/29"
+    },
+    {
+        "options": ["Основа робототехники", "Распределенная база данных", "Концепция квантовой физики", "Техника создания виртуальной реальности"],
+        "scores": [0, 1, 0, 0],
+        "correct_index": 1,
+        "question": "https://telesco.pe/knqwae/8"
+    },
+    {
+        "options": ["1949", "1952", "1960", "1953"],
+        "scores": [0, 1, 0, 0],
+        "correct_index": 1,
+        "question": "https://telesco.pe/knqwae/28"
+    },
+    {
+        "options": ["Sony", "Kodak", "Motorola", "Samsung"],
+        "scores": [0, 0, 1, 0],
+        "correct_index": 2,
+        "question": "https://telesco.pe/knqwae/31"
+    },
+    {
+        "options": ["2009", "2010", "2011", "2012"],
+        "scores": [0, 0, 1, 0],
+        "correct_index": 2,
+        "question": "https://telesco.pe/knqwae/35"
+    },
+    {
+        "options": ["Центр космического мониторинга", "Центр тестирования навигационной аппаратуры", "НИЛ Электроники рентгеновских приборов", "Студенческий центр высоких технологий"],
+        "scores": [0, 0, 1, 0],
+        "correct_index": 2,
+        "question": "https://telesco.pe/knqwae/26"
+    },
+    {
+        "options": ["2", "3", "4", "5"],
+        "scores": [0, 1, 0, 0],
+        "correct_index": 1,
+        "question": "https://telesco.pe/knqwae/30"
+    },
+    {
+        "options": ["Да", "Нет"],
+        "scores": [1, 0],
+        "correct_index": 0,
+        "question": "https://telesco.pe/knqwae/7"
+    },
+    {
+        "options": ["DOTA 2", "Counter Strike"],
+        "scores": [0, 1],
+        "correct_index": 1,
+        "question": "https://telesco.pe/knqwae/20"
+    },
+    {
+        "options": ["Монитор", "Мышь"],
+        "scores": [1, 0],
+        "correct_index": 0,
+        "question": "https://telesco.pe/knqwae/22"
+    },
+    {
+        "options": ["Радио", "Искусственный интеллект"],
+        "scores": [1, 0],
+        "correct_index": 0,
+        "question": "https://telesco.pe/knqwae/41"
+    },
+    {
+        "options": ["GitHub", "Habr"],
+        "scores": [1, 0],
+        "correct_index": 0,
+        "question": "https://telesco.pe/knqwae/3"
+    },
+    {
+        "options": ["frontend", "backend"],
+        "scores": [1, 0],
+        "correct_index": 0,
+        "question": "https://telesco.pe/knqwae/38"
+    },
+    {
+        "options": ["Counter Strike", "The Witcher", "The Witness", "Among us"],
+        "scores": [0, 0, 1, 0],
+        "correct_index": 2,
+        "question": "https://telesco.pe/knqwae/12"
+    },
+    {
+        "options": ["GTA 4", "Call of Duty: Black Ops", "Fallout 4", "Silent Hill 2"],
+        "scores": [0, 0, 0, 1],
+        "correct_index": 3,
+        "question": "https://telesco.pe/knqwae/11"
+    },
+    {
+        "options": ["Функция общения игроков в игре", "Сеть для соединения игроков", "Глобальная сеть для игроков", "Система обмена предметами"],
+        "scores": [0, 0, 1, 0],
+        "correct_index": 2,
+        "question": "https://telesco.pe/knqwae/16"
+    },
+    {
+        "options": ["Honkai Impact 3rd", "Genshin Impact", "Final Fantasy VII Remake", "Assassin's Creed Valhalla"],
+        "scores": [0, 1, 0, 0],
+        "correct_index": 1,
+        "question": "https://telesco.pe/knqwae/24"
+    }
+]
+user_data = {}
+message_id = {}
+user_status = {}
+
+
+class Form(StatesGroup):
+    name = State()
+    vk = State()
+    group = State()
+    secret = State()
+    check_secret = State()
+
+
+async def create_excel_file():
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.append(["ID", "ФИО", "ВК", "Группа", "Количество баллов"])
+    wb.save("participants.xlsx")
+
+
+# Проверяем наличие файла, если его нет - создаем новый с заголовками
+try:
+    wb = openpyxl.load_workbook("participants.xlsx")
+except FileNotFoundError:
+    create_excel_file()
+
+
+@dp.message_handler(commands=['start'])
+async def send_welcome(message: types.Message):
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    start_button = types.KeyboardButton("Начать")
+    markup.add(start_button)
+
+    if not is_user_registered(message.from_user.id):
+        await bot.send_message(message.from_user.id, "Всем привет 💙\n\nМы начинаем наш онлайн-квиз! На каждый вопрос тебе будет дано 30 секунд на ответ 😉, так что успевай!\n\nЖелаем удачи, а самым сообразительным подарим памятные призы 🥳\n\nВ 16:20 будет награждение 🏆",
+                               parse_mode='HTML',
+                               reply_markup=markup
+                               )
+        video_url = "https://telesco.pe/knqwae/2"  # Видео-кружочек
+        await bot.send_video(message.chat.id, video=video_url)
+    else:
+        await bot.send_message(message.from_user.id, "Вы уже зарегистрированы для участия в викторине.")
+
+
+@dp.message_handler()
+async def echo_all(message: types.Message):
+    if message.text == "Начать":
+        current_time = datetime.now()
+        quiz_start_time = datetime(current_time.year, 5, 7, 13, 30)  # 21 февраля, 13:00
+        quiz_end_time = datetime(current_time.year, 5, 7, 16, 0)  # 21 февраля, 15:00
+
+        if quiz_start_time <= current_time <= quiz_end_time:
+            if not is_user_registered(message.from_user.id):
+                await bot.send_message(message.from_user.id, "Отправьте свое ФИО 2 раза отдельными сообщениями")
+                user_data[message.from_user.id] = {"ID": message.from_user.id, "ФИО": message.from_user.full_name,
+                                                   "Количество баллов": 0}
+                user_status[message.from_user.id] = {}
+                await Form.name.set()
+            else:
+                await bot.send_message(message.from_user.id, "Пройти викторину можно пройти только один раз")
+        else:
+            await bot.send_message(message.from_user.id, "Дождитесь начала викторины")
+
+
+def is_user_registered(user_id):
+    wb = openpyxl.load_workbook("participants.xlsx")
+    ws = wb.active
+    for row in ws.iter_rows(min_row=2, max_row=ws.max_row, min_col=1, max_col=1):
+        if row[0].value == user_id:
+            return True
+    return False
+
+
+@dp.message_handler(state=Form.name)
+async def process_name_step(message):
+    user_data[message.from_user.id]["ФИО"] = message.text
+    await Form.next()
+
+
+@dp.message_handler(state=Form.vk)
+async def process_vk_step(message):
+    await message.answer("Введите ссылку на свой ВК")
+    user_data[message.from_user.id]["ВК"] = message.text
+    await Form.next()
+
+
+@dp.message_handler(state=Form.group)
+async def process_group_step(message, state):
+    await message.answer("Введите вашу академическую группу\n\nНапример РИ-100000")
+    user_data[message.from_user.id]["Группа"] = message.text
+
+    # Переходим к следующему шагу
+    await Form.next()
+
+
+@dp.message_handler(state=Form.secret)
+async def process_secret_step(message, state):
+    await state.finish()  # Завершаем состояние 'secret'
+    await start_quiz(message.from_user.id)  # Переходим к состоянию, где начинается викторина
+
+async def start_quiz(user_id):
+    # Перемешиваем вопросы
+    random_questions = random.sample(questions, len(questions))
+    user_status[user_id]["current_question_index"] = 0
+    await send_question(user_id, random_questions[0])
+question_messages = {}
+
+
+async def send_question(chat_id, question_data):
+    # Получаем URL видео с вопросом
+    video_url = question_data.get("question")
+
+    # Отправляем текст вопроса
+    question_message = await bot.send_video(chat_id, video=video_url)
+
+    # Если вопрос содержит варианты ответов
+    if "options" in question_data:
+        options = question_data.get("options")
+        options_markup = InlineKeyboardMarkup()
+        for i, option in enumerate(options):
+            callback_data = f"answer_{i}"
+            options_markup.add(InlineKeyboardButton(option, callback_data=callback_data))
+        options_message = await bot.send_message(chat_id, "Выберите вариант ответа:", reply_markup=options_markup)
+
+        # Сохраняем сообщения в словаре для последующего удаления
+        question_messages[chat_id] = [question_message.message_id, options_message.message_id]
+    else:
+        # Если вопрос не содержит вариантов ответов, сохраняем только одно сообщение
+        question_messages[chat_id] = [question_message.message_id]
+
+
+
+@dp.callback_query_handler(lambda query: query.data.startswith('answer'))
+async def process_answer(callback_query: types.CallbackQuery, state: FSMContext):
+    user_id = callback_query.from_user.id
+    selected_option_index = int(callback_query.data.split('_')[1])
+    current_question_index = user_status[user_id].get("current_question_index", 0)
+    question_data = questions[current_question_index]
+
+    # Если вопрос содержит варианты ответов
+    if "options" in question_data:
+        # Если выбранный вариант правильный, добавляем баллы пользователю
+        if selected_option_index == question_data["correct_index"]:
+            user_data[user_id]["Количество баллов"] += question_data["scores"][selected_option_index]
+
+            # Обновляем сумму баллов в файле Excel
+            await update_excel_points(user_id, user_data[user_id]["Количество баллов"])
+
+        # Удаляем предыдущие сообщения с вопросом и вариантами ответов
+        if user_id in question_messages:
+            for message_id in question_messages[user_id]:
+                await bot.delete_message(user_id, message_id)
+            del question_messages[user_id]
+
+        # Переходим к следующему вопросу или завершаем викторину, если все вопросы отвечены
+        if current_question_index + 1 < len(questions):
+            user_status[user_id]["current_question_index"] = current_question_index + 1
+            await send_question(user_id, questions[current_question_index + 1])
+        else:
+            # Сохраняем данные пользователя в Excel после ответа на все вопросы
+            await save_to_excel(user_data[user_id])
+            await bot.send_video(user_id, "https://telesco.pe/knqwae/25")
+
+
+
+
+
+async def update_excel_points(user_id, new_points):
+    wb = openpyxl.load_workbook("participants.xlsx")
+    ws = wb.active
+    for row in ws.iter_rows(min_row=2, max_row=ws.max_row, min_col=1, max_col=1):
+        if row[0].value == user_id:
+            ws.cell(row=row[0].row, column=6, value=new_points)
+            break
+    wb.save("participants.xlsx")
+
+
+async def save_to_excel(user_data):
+    wb = openpyxl.load_workbook("participants.xlsx")
+    ws = wb.active
+    user_id = user_data.get("ID", "")
+    found_user = False
+
+    for row in ws.iter_rows(min_row=2, max_row=ws.max_row, min_col=1, max_col=1):
+        if row[0].value == user_id:
+            row[0].offset(column=1).value = user_data.get("ФИО", "")
+            row[0].offset(column=2).value = user_data.get("ВК", "")
+            row[0].offset(column=3).value = user_data.get("Группа", "")
+            # Update points only if it's greater than the existing value
+            current_points = row[0].offset(column=5).value
+            new_points = user_data.get("Количество баллов", "")
+            if new_points and (not current_points or new_points > current_points):
+                row[0].offset(column=5).value = new_points
+            found_user = True
+            break
+
+    if not found_user:
+        new_row = [user_data.get("ID", ""), user_data.get("ФИО", ""), user_data.get("ВК", ""), user_data.get("Группа", ""), user_data.get("Количество баллов", "")]
+        ws.append(new_row)
+
+    wb.save("participants.xlsx")
+
+if __name__ == '__main__':
+    executor.start_polling(dp, skip_updates=True)
